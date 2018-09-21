@@ -1,5 +1,5 @@
-import ../../finals
-import def
+import ../finals
+import def3
 
 var v = initVariant()
 

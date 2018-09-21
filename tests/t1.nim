@@ -1,5 +1,5 @@
-import ../../finals
-import def
+import ../finals
+import def1
 
 var p: Point
 p.x = 0

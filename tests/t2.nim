@@ -1,5 +1,5 @@
-import ../../finals
-import def
+import ../finals
+import def2
 
 let x = newX()
 x.x = 3

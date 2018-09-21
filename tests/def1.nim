@@ -1,4 +1,4 @@
-import ../../finals
+import ../finals
 
 finals:
   type Point* = object

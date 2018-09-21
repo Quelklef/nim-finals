@@ -5,9 +5,12 @@ Transparent single-set attributes for Nim types
 ## Example
 
 ```nim
-type Point = object {.finals.}
-  x: int
-  y {.final.}: int
+mapFinals:
+  type Point = object
+    x*: int
+    y {.final.}: int
+
+# In another file...
 
 var p: Point
 p.x = 3  # fine

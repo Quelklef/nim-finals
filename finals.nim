@@ -63,18 +63,18 @@ proc mapTypeBody(body: NimNode; attrTable: var Table[NimNode, NimNode]): NimNode
       if child.marked:
         result[i] = result[i].unmark
         result.add(makeSentinel(child, attrTable))
-    else: assert false
+    else: assert(false)
 
-proc makeProcs(objType, body: NimNode; attrTable: var Table[NimNode, NimNode]): seq[NimNode] =
+proc makeProcs(minimalMutableObjType, body: NimNode; attrTable: var Table[NimNode, NimNode]): seq[NimNode] =
   case body.kind
   of nnkDiscardStmt:
     discard
   of nnkRecList:
     for child in body:
-      result.add(makeProcs(objType, child, attrTable))
+      result.add(makeProcs(minimalMutableObjType, child, attrTable))
   of nnkRecCase:
     for child in result[1][1]:
-      result.add(makeProcs(objType, child, attrTable))
+      result.add(makeProcs(minimalMutableObjType, child, attrTable))
   of nnkIdentDefs:
     if body.marked:
       let valType = body[1]
@@ -83,26 +83,40 @@ proc makeProcs(objType, body: NimNode; attrTable: var Table[NimNode, NimNode]): 
       let procName = newIdentNode($attrName & "=")
       let exMsg = $attrName & " cannot be set twice!"
       let procedure = (quote do:
-        # TODO: `var` here uses an assumption
-        # Should be `var` for `object` and noop for `var`, `ref`, `ptr`.
-        proc `procName`*(obj: var `objType`; val: `valType`) =
+        proc `procName`*(obj: `minimalMutableObjType`; val: `valType`) =
           if obj.`sentinelName`:
             raise FinalAttributeError.newException(`exMsg`)
           obj.`attrName` = val
           obj.`sentinelName` = true
       )
       result.add(procedure)
-  else: assert false
+  else: assert(false)
+
+proc makeMinimalMutableObjType(typedef: NimNode): NimNode =
+  case typedef[2].kind
+  of nnkObjectTy:
+    return nnkVarTy.newTree(typedef[0].ensureNoPostfix)
+  of nnkVarTy, nnkRefTy, nnkPtrTy:
+    return typedef[0].ensureNoPostfix
+  else: assert(false)
+
+proc findObjectTy(node: NimNode): NimNode =
+  case node.kind
+  of nnkObjectTy:
+    return node
+  else:
+    return node[0].findObjectTy
 
 proc mapTypedef(typedef: NimNode): (NimNode, seq[NimNode]) =
   typedef.expectKind(nnkTypedef)
-  typedef[2].expectKind(nnkObjectTy)
 
   var attrTable = initTable[NimNode, NimNode]()
+  var objectTy = findObjectTy(typedef[2])
   var resultTypedef = typedef.copyNimTree
-  resultTypedef[2][2] = mapTypeBody(resultTypedef[2][2], attrTable)
+  var resultObjectTy = findObjectTy(resultTypedef[2])
+  resultObjectTy[2] = mapTypeBody(resultObjectTy[2], attrTable)
 
-  return (resultTypedef, makeProcs(typedef[0].ensureNoPostfix, typedef[2][2], attrTable))
+  return (resultTypedef, makeProcs(makeMinimalMutableObjType(typedef), objectTy[2], attrTable))
 
 proc mapTypeSection(typeSec: NimNode): (NimNode, seq[NimNode]) =
   typeSec.expectKind(nnkTypeSection)
@@ -133,3 +147,4 @@ proc mapStmts(stmts: NimNode): NimNode =
 macro finals*(stmts: untyped): untyped =
   result = mapStmts(stmts)
   echo(result.repr)
+

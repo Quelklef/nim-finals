@@ -36,24 +36,3 @@ If an attribute is marked with `{.final.}`, then it should NOT be exported. `{.f
 #### Intolerant of other pragmas
 
 If an attribute is marked with any pragmas besides `{.final.}`, those pragmas will be removed.
-
-#### Does not work perfectly with `var`, `ref`, and `ptr` types.
-
-If the type augmented with `finals::` is a `var`, `ref`, or `ptr` type, the generated setter will still wrap the type in another `var` type.
-
-Example:
-
-```nim
-finals:
-  type X = ref object
-    x {.final.} int
-```
-
-Will generate:
-
-```
-proc `x=`(obj: var X; val: int) =
-  ...
-```
-
-when really `obj` should just be of type `X` since `ref` types are mutable.

@@ -2,7 +2,7 @@ import ../../finals
 
 finals:
   type X = ref object
-    x {.final.}: int
+    x* {.final.}: int
 
 proc newX*(): X =
   new(result)

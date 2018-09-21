@@ -3,4 +3,4 @@ import ../../finals
 finals:
   type Point* = object
     x*: int
-    y {.final.}: int
+    y* {.final.}: int

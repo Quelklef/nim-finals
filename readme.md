@@ -56,4 +56,4 @@ proc `x=`(obj: var X; val: int) =
   ...
 ```
 
-when really `obj` should just be of type `X` since `var` types are mutable.
+when really `obj` should just be of type `X` since `ref` types are mutable.

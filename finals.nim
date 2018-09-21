@@ -176,16 +176,18 @@ proc mapTypeSection(typeSec: NimNode): (NimNode, seq[NimNode]) =
 proc mapStmts(stmts: NimNode): NimNode =
   stmts.expectKind(nnkStmtList)
 
-  when not defined(debug):
-    return stmts.deepMap(node => (if node.kind == nnkIdentDefs and node.marked: node.unmark else: node))
-  else:
-    result = stmts.copyNimTree()
-    for i, child in result:
-      if child.kind == nnkTypeSection:
-        let (typeSec, procs) = mapTypeSection(child)
-        result[i] = typeSec
-        result.add(procs)
+  result = stmts.copyNimTree()
+  for i, child in result:
+    if child.kind == nnkTypeSection:
+      let (typeSec, procs) = mapTypeSection(child)
+      result[i] = typeSec
+      result.add(procs)
 
 macro finals*(stmts: untyped): untyped =
   result = mapStmts(stmts)
-  echo(result.repr)
+
+macro finalsd*(stmts: untyped): untyped =
+  when not defined(debug):
+    result = stmts.deepMap(node => (if node.kind == nnkIdentDefs and node.marked: node.unmark else: node))
+  else:
+    result = mapStmts(stmts)

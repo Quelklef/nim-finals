@@ -1,6 +1,6 @@
 import ../../finals
 
-mapFinals:
+finals:
   type Point* = object
     x*: int
     y {.final.}: int

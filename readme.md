@@ -5,7 +5,7 @@ Transparent single-set attributes for Nim types
 ## Example
 
 ```nim
-mapFinals:
+finals:
   type Point = object
     x*: int
     y {.final.}: int
@@ -39,12 +39,12 @@ If an attribute is marked with any pragmas besides `{.final.}`, those pragmas wi
 
 #### Does not work perfectly with `var`, `ref`, and `ptr` types.
 
-If the type augmented with `{.finals.}` or `mapFinals:` is a `var`, `ref`, or `ptr` type, the generated setter will still wrap the type in another `var` type.
+If the type augmented with `finals::` is a `var`, `ref`, or `ptr` type, the generated setter will still wrap the type in another `var` type.
 
 Example:
 
 ```nim
-mapFinals:
+finals:
   type X = ref object
     x {.final.} int
 ```

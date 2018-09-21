@@ -1,11 +1,18 @@
-import assoc
 import macros
+import sugar
+
+import assoc
 
 # TODO: Integrate into Nim hierarchy
 type FinalAttributeError* = object of Exception
 
 type Table[K, V] = Assoc[K, V]
 proc initTable[K, V](): Table[K, V] = initAssoc[K, V]()
+
+proc deepMap(node: NimNode; f: NimNode -> NimNode): NimNode =
+  result = f(node.copyNimTree)
+  for i, child in result:
+    result[i] = child.deepMap(f)
 
 proc ensureNoPostfix(node: NimNode): NimNode =
   case node.kind
@@ -97,15 +104,6 @@ proc mapTypedef(typedef: NimNode): (NimNode, seq[NimNode]) =
 
   return (resultTypedef, makeProcs(typedef[0].ensureNoPostfix, typedef[2][2], attrTable))
 
-macro finals*(typedef: untyped): untyped =
-  when defined(debug):
-    let (typeDef, procs) = mapTypedef(typedef)
-    return nnkStmtList.newTree(
-      nnkTypeSection.newTree(typeDef)
-    ).add(procs)
-  else:
-    return typedef
-
 proc mapTypeSection(typeSec: NimNode): (NimNode, seq[NimNode]) =
   typeSec.expectKind(nnkTypeSection)
 
@@ -122,20 +120,16 @@ proc mapTypeSection(typeSec: NimNode): (NimNode, seq[NimNode]) =
 proc mapStmts(stmts: NimNode): NimNode =
   stmts.expectKind(nnkStmtList)
 
-  result = stmts.copyNimTree()
-  for i, child in result:
-    if child.kind == nnkTypeSection:
-      let (typeSec, procs) = mapTypeSection(child)
-      result[i] = typeSec
-      result.add(procs)
-
-macro mapFinals*(stmts: untyped): untyped =
-  when defined(debug):
-    result = mapStmts(stmts)
-    echo(result.repr)
+  when not defined(debug):
+    return stmts.deepMap(node => (if node.kind == nnkIdentDefs and node.marked: node.unmark else: node))
   else:
-    result = stmts
+    result = stmts.copyNimTree()
+    for i, child in result:
+      if child.kind == nnkTypeSection:
+        let (typeSec, procs) = mapTypeSection(child)
+        result[i] = typeSec
+        result.add(procs)
 
-macro final*(node: untyped): untyped =
-  ## Must be included to keep the compiler yelling about undeclared routine 'final'
-  return node
+macro finals*(stmts: untyped): untyped =
+  result = mapStmts(stmts)
+  echo(result.repr)

@@ -1,8 +1,8 @@
 import macros
 import sugar
 
-import assoc
-import misc
+import finals/assoc
+import finals/misc
 
 # TODO: Integrate into Nim hierarchy
 type FinalAttributeError* = object of Exception
@@ -81,7 +81,7 @@ proc mapTypeBody(body: NimNode; attrTable: var Table[NimNode, NimNode]): NimNode
     case child.kind
     of nnkRecCase:
       for j in 1 .. child.len - 1:
-        let k = 
+        let k =
           if result[i][j].kind == nnkOfBranch: 1
           elif result[i][j].kind == nnkElse: 0
           else: abort(int)
@@ -189,4 +189,3 @@ proc mapStmts(stmts: NimNode): NimNode =
 macro finals*(stmts: untyped): untyped =
   result = mapStmts(stmts)
   echo(result.repr)
-

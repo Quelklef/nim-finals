@@ -2,5 +2,5 @@
 version       = "1.0.0"
 author        = "Eli Maynard"
 description   = "Transparently declare single-set attributes."
-license       = "-"
+license       = "MIT"
 skipDirs      = @["tests"]

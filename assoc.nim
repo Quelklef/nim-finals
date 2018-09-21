@@ -1,4 +1,3 @@
-
 type Assoc*[K, V] = object
   ## An association list
   keys*: seq[K]
@@ -24,4 +23,3 @@ proc `[]=`*[K, V](assoc: var Assoc[K, V]; k: K, v: V) =
 
   assoc.keys.add(k)
   assoc.vals.add(v)
-

@@ -2,12 +2,29 @@ import macros
 import sugar
 
 import assoc
+import misc
 
 # TODO: Integrate into Nim hierarchy
 type FinalAttributeError* = object of Exception
 
 type Table[K, V] = Assoc[K, V]
 proc initTable[K, V](): Table[K, V] = initAssoc[K, V]()
+
+proc `[]`[I, J](node: NimNode; sl: HSlice[I, J]): seq[NimNode] =
+  when I is BackwardsIndex:
+    let lo = node.len - int(sl.a)
+  else:
+    let lo = sl.a
+
+  when J is BackwardsIndex:
+    let hi = node.len - int(sl.b)
+  else:
+    let hi = sl.b
+
+  for x, child in node:
+    if x in lo .. hi:
+      result.add(child)
+
 
 proc deepMap(node: NimNode; f: NimNode -> NimNode): NimNode =
   result = f(node.copyNimTree)
@@ -51,6 +68,7 @@ proc makeSentinel(node: NimNode; attrTable: var Table[NimNode, NimNode]): NimNod
     )
 
 proc mapTypeBody(body: NimNode; attrTable: var Table[NimNode, NimNode]): NimNode =
+  body.expectKind({nnkDiscardStmt, nnkRecList})
   if body.kind == nnkDiscardStmt:
     return body
 
@@ -58,7 +76,12 @@ proc mapTypeBody(body: NimNode; attrTable: var Table[NimNode, NimNode]): NimNode
   for i, child in result:
     case child.kind
     of nnkRecCase:
-      result[i][1][1] = mapTypeBody(result[i][1][1], attrTable)
+      for j in 1 .. child.len - 1:
+        let k = 
+          if result[i][j].kind == nnkOfBranch: 1
+          elif result[i][j].kind == nnkElse: 0
+          else: abort(int)
+        result[i][j][k] = mapTypeBody(result[i][j][k], attrTable)
     of nnkIdentDefs:
       if child.marked:
         result[i] = result[i].unmark
@@ -73,7 +96,12 @@ proc makeProcs(minimalMutableObjType, body: NimNode; attrTable: var Table[NimNod
     for child in body:
       result.add(makeProcs(minimalMutableObjType, child, attrTable))
   of nnkRecCase:
-    for child in result[1][1]:
+    for clause in body[1 .. ^1]:
+      let child =
+        if clause.kind == nnkOfBranch: clause[1]
+        elif clause.kind == nnkElse: clause[0]
+        else: abort(NimNode)
+
       result.add(makeProcs(minimalMutableObjType, child, attrTable))
   of nnkIdentDefs:
     if body.marked:

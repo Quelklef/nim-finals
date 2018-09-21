@@ -8,7 +8,7 @@ Transparent single-set attributes for Nim types
 finals:
   type Point = object
     x*: int
-    y {.final.}: int
+    y* {.final.}: int
 
 # In another file...
 
@@ -30,7 +30,7 @@ getters (I think) and setters for same-module types. So in
 # a.nim
 finals:
   type X = object
-    x {.final.}: int
+    x* {.final.}: int
 ```
 
 `X.x` will only be protected for `.x=` calls from outside `a.nim`.

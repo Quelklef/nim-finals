@@ -21,10 +21,24 @@ p.y = 1  # Error! `y` can only be set once!
 
 ## Usage
 
-Like in the example. Must be run with `-d:debug`.
+Like in the example. Generalizes to variant types as well. Multiple typedefs may be present, as wel as
+non-typdefs, which will be ignored.
 
-NOTE: This package does NOT work for types defined in the same module. This is because Nim ignores
-getters (I think) and setters for same-module types. So in
+#### For debugging
+
+`finalsd` may be used instead of `finals` to only have an effect with `-d:debug`, and otherwise be a 0-cost noop.
+
+## Gotchas
+
+#### Name conflicts
+
+The macro works by generating, for an attribute `a: A` on type `T`, a getter `proc a(o: T): A` and setter
+``proc `a=`(o: T; v: A)``. If you define your own custom setters and getters, there will be a name conflict.
+
+#### Module scoping
+
+Unfortunately, getters and setters only have an effect outside of the module with the relevant typedef.
+For instance,
 
 ```nim
 # a.nim
@@ -34,6 +48,8 @@ finals:
 ```
 
 `X.x` will only be protected for `.x=` calls from outside `a.nim`.
+
+This affects uses of `finals`, as well. `finals` only has an effect outside of the module it's used in.
 
 ## Known bugs
 

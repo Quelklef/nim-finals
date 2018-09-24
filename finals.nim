@@ -120,14 +120,14 @@ proc makeProcs(objType, minimalMutableObjType, body: NimNode; attrTable: var Tab
       let setterName = newIdentNode($attrName & "=")
       let exMsg = $attrName & " cannot be set twice!"
       let setter = (quote do:
-        proc `setterName`*(obj: `minimalMutableObjType`; val: `valType`) {.inline.} =
+        template `setterName`*(obj: `minimalMutableObjType`; val: `valType`) =
           if obj.`sentinelName`:
             raise FinalAttributeError.newException(`exMsg`)
           obj.`attrName` = val
           obj.`sentinelName` = true
       )
       let getter = (quote do:
-        proc `attrName`*(obj: `objType`): `valType` {.inline.} =
+        template `attrName`*(obj: `objType`): `valType` =
           return obj.`attrName`
       )
       result.add(getter)

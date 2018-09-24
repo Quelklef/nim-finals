@@ -143,11 +143,15 @@ proc makeMinimalMutableObjType(typedef: NimNode): NimNode =
   else: assert(false)
 
 proc findObjectTy(node: NimNode): NimNode =
+  ## Returns a nested nnkObjectTy, or nil if
+  ## there is none or we are otherwise unable to handle this type
   case node.kind
   of nnkObjectTy:
     return node
-  else:
+  of nnkStaticTy, nnkVarTy, nnkPtrTy, nnkRefTy, nnkDistinctTy:
     return node[0].findObjectTy
+  else:
+    return nil
 
 proc mapTypedef(typedef: NimNode): (NimNode, seq[NimNode]) =
   typedef.expectKind(nnkTypedef)
@@ -159,12 +163,16 @@ proc mapTypedef(typedef: NimNode): (NimNode, seq[NimNode]) =
   var attrTable = initTable[NimNode, NimNode]()
   var objectTy = findObjectTy(typedef[2])
 
+  if objectTy.isNil:
+    return (typedef, @[])
+
   # Noop on empty types
   if objectTy[2].kind == nnkEmpty:
     return (typedef, @[])
 
   var resultTypedef = typedef.copyNimTree
   var resultObjectTy = findObjectTy(resultTypedef[2])
+
   resultObjectTy[2] = mapTypeBody(resultObjectTy[2], attrTable)
 
   return (resultTypedef, makeProcs(typedef[0], makeMinimalMutableObjType(typedef), objectTy[2], attrTable))

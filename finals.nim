@@ -73,7 +73,7 @@ proc makeSentinel(node: NimNode; attrTable: var Table[NimNode, NimNode]): NimNod
 
 proc mapTypeBody(body: NimNode; attrTable: var Table[NimNode, NimNode]): NimNode =
   body.expectKind({nnkDiscardStmt, nnkRecList})
-  if body.kind == nnkDiscardStmt:
+  if body.kind  == nnkDiscardStmt:
     return body
 
   result = body.copyNimTree
@@ -152,8 +152,17 @@ proc findObjectTy(node: NimNode): NimNode =
 proc mapTypedef(typedef: NimNode): (NimNode, seq[NimNode]) =
   typedef.expectKind(nnkTypedef)
 
+  # Noop on enums
+  if typedef[2].kind == nnkEnumTy:
+    return (typedef, @[])
+
   var attrTable = initTable[NimNode, NimNode]()
   var objectTy = findObjectTy(typedef[2])
+
+  # Noop on empty types
+  if objectTy[2].kind == nnkEmpty:
+    return (typedef, @[])
+
   var resultTypedef = typedef.copyNimTree
   var resultObjectTy = findObjectTy(resultTypedef[2])
   resultObjectTy[2] = mapTypeBody(resultObjectTy[2], attrTable)

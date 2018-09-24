@@ -127,7 +127,7 @@ proc makeProcs(objType, minimalMutableObjType, body: NimNode; attrTable: var Tab
           obj.`sentinelName` = true
       )
       let getter = (quote do:
-        template `attrName`*(obj: `objType`): `valType` =
+        proc `attrName`*(obj: `objType`): `valType` =
           obj.`attrName`
       )
       result.add(getter)

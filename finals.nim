@@ -118,21 +118,26 @@ proc makeProcs(objType, minimalMutableObjType, body: NimNode; attrTable: var Tab
       let attrName = body[0][0].ensureNoPostfix
       let sentinelName = attrTable[body]
       let setterName = newIdentNode($attrName & "=")
+      let finalizerName = newIdentNode("ffinalize" & $attrName)
       let exMsg = $attrName & " cannot be set twice!"
       let setter = (quote do:
-        template `setterName`*(obj: `minimalMutableObjType`; val: `valType`) =
-          block:
-            if obj.`sentinelName`:
-              raise FinalAttributeError.newException(`exMsg`)
-            obj.`attrName` = val
-            obj.`sentinelName` = true
+        proc `setterName`*(obj: `minimalMutableObjType`; val: `valType`) =
+          if obj.`sentinelName`:
+            raise FinalAttributeError.newException(`exMsg`)
+          obj.`attrName` = val
+          obj.`sentinelName` = true
       )
       let getter = (quote do:
         proc `attrName`*(obj: `objType`): `valType` =
           obj.`attrName`
       )
+      let finalizer = (quote do:
+        proc `finalizerName`*(obj: `minimalMutableObjType`) =
+          obj.`sentinelName` = true
+      )
       result.add(getter)
       result.add(setter)
+      result.add(finalizer)
   else: assert(false)
 
 proc makeMinimalMutableObjType(typedef: NimNode): NimNode =

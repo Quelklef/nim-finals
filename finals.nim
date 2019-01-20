@@ -73,7 +73,7 @@ proc makeSentinel(node: NimNode; attrTable: var Table[NimNode, NimNode]): NimNod
 
 proc mapTypeBody(body: NimNode; attrTable: var Table[NimNode, NimNode]): NimNode =
   body.expectKind({nnkDiscardStmt, nnkRecList})
-  if body.kind  == nnkDiscardStmt:
+  if body.kind == nnkDiscardStmt:
     return body
 
   result = body.copyNimTree

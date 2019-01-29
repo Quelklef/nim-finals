@@ -91,6 +91,25 @@ finals:
 let c = Child(c: 2, p: 3)  # error! `p` is not accessible
 ```
 
+#### Function Attributes
+
+Because `finals` generates accessors for attriubutes, `obj.finalAttr()` will call the acceessor rather than
+invoking the attribute.
+
+```nim
+finals:
+  type T = object
+    f* {.final.}: proc()
+
+proc initT():
+  return T(f: proc() = echo "test")
+
+# in another file...
+let t = initT()
+t.f()  # calls the `f` accessor instead of the proc
+t.f()()  # need two ()'s to work
+```
+
 ## Known bugs
 
 #### Intolerant of other pragmas

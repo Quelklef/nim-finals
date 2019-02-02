@@ -94,11 +94,14 @@ proc mapTypeBody(body: NimNode; attrTable: var Table[NimNode, NimNode]): NimNode
           result.add(makeSentinel(child, attrTable))
         else:
           result[i] = result[i].unmark
-    else: assert(false)
+    of nnkNilLit:  # nim seems to use a NilLit for `discard` in type definitions
+      discard
+    else:
+      assert(false)
 
 proc makeProcs(objType, minimalMutableObjType, body: NimNode; attrTable: var Table[NimNode, NimNode], noop=false): seq[NimNode] =
   case body.kind
-  of nnkDiscardStmt:
+  of nnkDiscardStmt, nnkNilLit:  # NilLit seems to be used for `discard` in typedefs
     discard
   of nnkRecList:
     for child in body:
@@ -142,7 +145,8 @@ proc makeProcs(objType, minimalMutableObjType, body: NimNode; attrTable: var Tab
         result.add(getter)
         result.add(setter)
       result.add(finalizer)
-  else: assert(false)
+  else:
+    assert(false)
 
 proc makeMinimalMutableObjType(typedef: NimNode): NimNode =
   case typedef[2].kind

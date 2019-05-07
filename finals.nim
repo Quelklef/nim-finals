@@ -99,13 +99,13 @@ proc mapTypeBody(body: NimNode; attrTable: var Table[NimNode, NimNode]): NimNode
     else:
       assert(false)
 
-proc makeProcs(objType, minimalMutableObjType, body: NimNode; attrTable: var Table[NimNode, NimNode], noop=false): seq[NimNode] =
+proc makeProcs(objType, minimalMutableObjType, body: NimNode; attrTable: var Table[NimNode, NimNode], noop: bool): seq[NimNode] =
   case body.kind
   of nnkDiscardStmt, nnkNilLit:  # NilLit seems to be used for `discard` in typedefs
     discard
   of nnkRecList:
     for child in body:
-      result.add(makeProcs(objType, minimalMutableObjType, child, attrTable))
+      result.add(makeProcs(objType, minimalMutableObjType, child, attrTable, noop))
   of nnkRecCase:
     for clause in body[1 .. ^1]:
       let child =
@@ -113,7 +113,7 @@ proc makeProcs(objType, minimalMutableObjType, body: NimNode; attrTable: var Tab
         elif clause.kind == nnkElse: clause[0]
         else: abort(NimNode)
 
-      result.add(makeProcs(objType, minimalMutableObjType, child, attrTable))
+      result.add(makeProcs(objType, minimalMutableObjType, child, attrTable, noop))
   of nnkIdentDefs:
     if body.marked and body.exported:
       let objType = objType.ensureNoPostfix
@@ -167,7 +167,7 @@ proc findObjectTy(node: NimNode): NimNode =
   else:
     return nil
 
-proc mapTypedef(typedef: NimNode, noop=false): (NimNode, seq[NimNode]) =
+proc mapTypedef(typedef: NimNode, noop: bool): (NimNode, seq[NimNode]) =
   typedef.expectKind(nnkTypedef)
 
   # Noop on enums
@@ -191,7 +191,7 @@ proc mapTypedef(typedef: NimNode, noop=false): (NimNode, seq[NimNode]) =
 
   return (resultTypedef, makeProcs(typedef[0], makeMinimalMutableObjType(typedef), objectTy[2], attrTable, noop))
 
-proc mapTypeSection(typeSec: NimNode, noop=false): (NimNode, seq[NimNode]) =
+proc mapTypeSection(typeSec: NimNode, noop: bool): (NimNode, seq[NimNode]) =
   typeSec.expectKind(nnkTypeSection)
 
   var resultTypeSec = typeSec.copyNimTree()
@@ -204,7 +204,7 @@ proc mapTypeSection(typeSec: NimNode, noop=false): (NimNode, seq[NimNode]) =
 
   return (resultTypeSec, resultProcs)
 
-proc mapStmts(stmts: NimNode; noop=false): NimNode =
+proc mapStmts(stmts: NimNode; noop: bool): NimNode =
   stmts.expectKind(nnkStmtList)
 
   result = stmts.copyNimTree()
@@ -216,12 +216,12 @@ proc mapStmts(stmts: NimNode; noop=false): NimNode =
 
 macro finals*(stmts: untyped): untyped =
   when not defined(finalsOff):
-    result = mapStmts(stmts)
+    result = mapStmts(stmts, noop=false)
   else:
     result = mapStmts(stmts, noop=true)
 
 macro finalsd*(stmts: untyped): untyped =
   when defined(finalsOn) or defined(debug) and not defined(finalsOff):
-    result = mapStmts(stmts)
+    result = mapStmts(stmts, noop=false)
   else:
     result = mapStmts(stmts, noop=true)

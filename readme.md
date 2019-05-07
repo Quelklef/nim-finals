@@ -28,6 +28,10 @@ non-typdefs, which will be ignored.
 
 `finalsd` may be used instead of `finals` to only have an effect with `-d:debug`, and otherwise be a 0-cost noop.
 
+If Nim is run with `-d:finalsOn`, both `finals` and `finalsd` blocks will run. If Nim is run with `-d:finalsOff`,
+neither `finals` nor `finalsd` blocks will run. If Nim is run with both `-d:finalsOn` and `-d:finalsOff`,
+the entire world will explode.
+
 ## Gotchas
 
 #### Name conflicts

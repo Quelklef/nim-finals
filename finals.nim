@@ -215,10 +215,13 @@ proc mapStmts(stmts: NimNode; noop=false): NimNode =
       result.add(procs)
 
 macro finals*(stmts: untyped): untyped =
-  result = mapStmts(stmts)
+  when not defined(finalsOff):
+    result = mapStmts(stmts)
+  else:
+    result = mapStmts(stmts, noop=true)
 
 macro finalsd*(stmts: untyped): untyped =
-  when not defined(debug):
-    result = mapStmts(stmts, noop=true)
-  else:
+  when defined(finalsOn) or defined(debug) and not defined(finalsOff):
     result = mapStmts(stmts)
+  else:
+    result = mapStmts(stmts, noop=true)

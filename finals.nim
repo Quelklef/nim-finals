@@ -71,7 +71,7 @@ proc makeSentinel(node: NimNode; attrTable: var Table[NimNode, NimNode]): NimNod
       newEmptyNode(),
     )
 
-proc mapTypeBody(body: NimNode; attrTable: var Table[NimNode, NimNode]): NimNode =
+proc mapTypeBody(body: NimNode; attrTable: var Table[NimNode, NimNode]; noop: bool): NimNode =
   body.expectKind({nnkDiscardStmt, nnkRecList})
   if body.kind == nnkDiscardStmt:
     return body
@@ -85,15 +85,13 @@ proc mapTypeBody(body: NimNode; attrTable: var Table[NimNode, NimNode]): NimNode
           if result[i][j].kind == nnkOfBranch: 1
           elif result[i][j].kind == nnkElse: 0
           else: abort(int)
-        result[i][j][k] = mapTypeBody(result[i][j][k], attrTable)
+        result[i][j][k] = mapTypeBody(result[i][j][k], attrTable, noop)
     of nnkIdentDefs:
       if child.marked:
-        if child.exported:
-          result[i] = result[i].unmark
+        result[i] = result[i].unmark
+        if child.exported and not noop:
           result[i][0] = result[i][0].ensureNoPostfix
           result.add(makeSentinel(child, attrTable))
-        else:
-          result[i] = result[i].unmark
     of nnkNilLit:  # nim seems to use a NilLit for `discard` in type definitions
       discard
     else:
@@ -119,32 +117,39 @@ proc makeProcs(objType, minimalMutableObjType, body: NimNode; attrTable: var Tab
       let objType = objType.ensureNoPostfix
       let valType = body[1]
       let attrName = body[0][0].ensureNoPostfix
-      let sentinelName = attrTable[body]
       let setterName = newIdentNode($attrName & "=")
       let finalizerName = newIdentNode("ffinalize" & $attrName)
-      let exMsg = $attrName & " cannot be set twice!"
-      let setter = (quote do:
-        proc `setterName`*(obj: `minimalMutableObjType`; val: `valType`) =
-          if obj.`sentinelName`:
-            raise FinalAttributeError.newException(`exMsg`)
-          obj.`attrName` = val
-          obj.`sentinelName` = true
-      )
-      let getter = (quote do:
-        proc `attrName`*(obj: `objType`): `valType` =
-          obj.`attrName`
-      )
-      let finalizer = (if noop: (quote do:
-          template `finalizerName`*(obj: `minimalMutableObjType`) =
-            discard
-      ) else: (quote do:
-          proc `finalizerName`*(obj: `minimalMutableObjType`) =
-          obj.`sentinelName` = true
-      ))
+      let exMsg = "'" & $attrName & "' cannot be set twice!"
+
       if not noop:
+        let sentinelName = attrTable[body]
+        let setter = (quote do:
+          proc `setterName`*(obj: `minimalMutableObjType`; val: `valType`) =
+            if obj.`sentinelName`:
+              raise FinalAttributeError.newException(`exMsg`)
+            obj.`attrName` = val
+            obj.`sentinelName` = true
+        )
+        let getter = (quote do:
+          proc `attrName`*(obj: `objType`): `valType` =
+            obj.`attrName`
+        )
+        let finalizer = (quote do:
+          proc `finalizerName`*(obj: `minimalMutableObjType`) =
+            obj.`sentinelName` = true
+        )
+
         result.add(getter)
         result.add(setter)
-      result.add(finalizer)
+        result.add(finalizer)
+
+      else:
+        let finalizer = (quote do:
+          template `finalizerName`*(obj: `minimalMutableObjType`) =
+            discard
+        )
+        result.add(finalizer)
+
   else:
     assert(false)
 
@@ -187,7 +192,8 @@ proc mapTypedef(typedef: NimNode, noop: bool): (NimNode, seq[NimNode]) =
   var resultTypedef = typedef.copyNimTree
   var resultObjectTy = findObjectTy(resultTypedef[2])
 
-  resultObjectTy[2] = mapTypeBody(resultObjectTy[2], attrTable)
+  resultObjectTy[2] = mapTypeBody(resultObjectTy[2], attrTable, noop)
+  echo(resultObjectTy.repr)
 
   return (resultTypedef, makeProcs(typedef[0], makeMinimalMutableObjType(typedef), objectTy[2], attrTable, noop))
 

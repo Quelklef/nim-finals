@@ -193,7 +193,6 @@ proc mapTypedef(typedef: NimNode, noop: bool): (NimNode, seq[NimNode]) =
   var resultObjectTy = findObjectTy(resultTypedef[2])
 
   resultObjectTy[2] = mapTypeBody(resultObjectTy[2], attrTable, noop)
-  echo(resultObjectTy.repr)
 
   return (resultTypedef, makeProcs(typedef[0], makeMinimalMutableObjType(typedef), objectTy[2], attrTable, noop))
 
